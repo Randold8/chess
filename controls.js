@@ -45,6 +45,7 @@ class GameController {
         };
     }
 
+    // controls.js
     mouseReleased(mouseX, mouseY) {
         if (!this.isDragging) return;
 
@@ -55,26 +56,23 @@ class GameController {
         let moveSuccessful = false;
 
         if (targetTile && this.selectedPiece) {
-            if (targetTile.occupyingPiece) {
-                // Attempt capture
-                const captureResult = this.selectedPiece.isValidCapture(targetTile, this.board);
-                if (captureResult.isValid) {
-                    // Remove all captured pieces
-                    captureResult.capturedPieces.forEach(piece => {
-                        const pieceTile = piece.currentTile;
-                        if (pieceTile) pieceTile.clear();
-                    });
+            // Check for valid captures first
+            const captureResult = this.selectedPiece.isValidCapture(targetTile, this.board);
+            if (captureResult.isValid) {
+                // Remove all captured pieces
+                captureResult.capturedPieces.forEach(piece => {
+                    const pieceTile = piece.currentTile;
+                    if (pieceTile) pieceTile.clear();
+                });
 
-                    // Move the capturing piece
-                    this.selectedPiece.spawn(targetTile);
-                    moveSuccessful = true;
-                }
-            } else {
-                // Attempt normal move
-                if (this.selectedPiece.isValidMove(targetTile, this.board)) {
-                    this.selectedPiece.spawn(targetTile);
-                    moveSuccessful = true;
-                }
+                // Move the capturing piece
+                this.selectedPiece.spawn(targetTile);
+                moveSuccessful = true;
+            }
+            // If no valid capture, check for valid move
+            else if (this.selectedPiece.isValidMove(targetTile, this.board)) {
+                this.selectedPiece.spawn(targetTile);
+                moveSuccessful = true;
             }
         }
 
@@ -93,6 +91,7 @@ class GameController {
         this.dragStartTile = null;
         this.dragPosition = { x: 0, y: 0 };
     }
+
 
     draw() {
         // Draw currently dragged piece if any
