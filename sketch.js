@@ -8,7 +8,8 @@ const PIECE_EMOJIS = {
         rook: '♖',
         bishop: '♗',
         knight: '♘',
-        pawn: '♙'
+        pawn: '♙',
+        jumper: '⛀'  
     },
     black: {
         king: '♚',
@@ -16,9 +17,11 @@ const PIECE_EMOJIS = {
         rook: '♜',
         bishop: '♝',
         knight: '♞',
-        pawn: '♟'
+        pawn: '♟',
+        jumper: '⛂' 
     }
 };
+
 
 class Tile {
     constructor(x, y) {
@@ -201,6 +204,7 @@ function setup() {
     for(let i = 0; i < 8; i++) {
         setupPiece('pawn', 'white', i, 6);
     }
+    setupPiece('jumper', 'white', 3, 5);
 }
 
 function draw() {

@@ -33,6 +33,7 @@ class Piece {
             case 'bishop': return new Bishop(color);
             case 'queen': return new Queen(color);
             case 'king': return new King(color);
+            case 'jumper': return new Jumper(color); // Add this line
             default: throw new Error('Invalid piece type');
         }
     }
@@ -249,5 +250,49 @@ class King extends Piece {
         }
 
         return this.createCaptureResult(false);
+    }
+}
+class Jumper extends Piece {
+    constructor(color) {
+        super('jumper', color);
+    }
+
+    isValidMove(targetTile, board) {
+        if (targetTile.occupyingPiece) return false;
+
+        const dx = targetTile.x - this.currentTile.x;
+        const dy = targetTile.y - this.currentTile.y;
+
+        // Direction check (white moves up, black moves down)
+        const correctDirection = (this.color === 'white' && dy === -1) ||
+                               (this.color === 'black' && dy === 1);
+
+        // Diagonal movement check
+        return Math.abs(dx) === 1 && correctDirection;
+    }
+
+    isValidCapture(targetTile, board) {
+        if (targetTile.occupyingPiece) return this.createCaptureResult(false);
+
+        const dx = targetTile.x - this.currentTile.x;
+        const dy = targetTile.y - this.currentTile.y;
+
+        // Must move exactly two squares diagonally
+        if (Math.abs(dx) !== 2 || Math.abs(dy) !== 2) {
+            return this.createCaptureResult(false);
+        }
+
+        // Direction check (can capture in both directions unlike regular moves)
+        const midX = this.currentTile.x + dx/2;
+        const midY = this.currentTile.y + dy/2;
+
+        // Check the piece being jumped over
+        const jumpedTile = board.getTileAt(midX, midY);
+        if (!jumpedTile || !jumpedTile.occupyingPiece ||
+            jumpedTile.occupyingPiece.color === this.color) {
+            return this.createCaptureResult(false);
+        }
+
+        return this.createCaptureResult(true, [jumpedTile.occupyingPiece]);
     }
 }
