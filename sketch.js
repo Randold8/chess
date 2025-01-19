@@ -9,7 +9,8 @@ const PIECE_EMOJIS = {
         bishop: '♗',
         knight: '♘',
         pawn: '♙',
-        jumper: '⛀'  
+        jumper: '⛀',
+        ogre: '🧌'  // white ogre
     },
     black: {
         king: '♚',
@@ -18,7 +19,8 @@ const PIECE_EMOJIS = {
         bishop: '♝',
         knight: '♞',
         pawn: '♟',
-        jumper: '⛂' 
+        jumper: '⛂',
+        ogre: '👹'  // red oni (Japanese ogre)
     }
 };
 
@@ -204,7 +206,8 @@ function setup() {
     for(let i = 0; i < 8; i++) {
         setupPiece('pawn', 'white', i, 6);
     }
-    setupPiece('jumper', 'white', 3, 5);
+    setupPiece('ogre', 'white', 5, 5);
+    setupPiece('jumper', 'black', 2, 2);
 }
 
 function draw() {

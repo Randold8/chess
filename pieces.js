@@ -33,7 +33,8 @@ class Piece {
             case 'bishop': return new Bishop(color);
             case 'queen': return new Queen(color);
             case 'king': return new King(color);
-            case 'jumper': return new Jumper(color); // Add this line
+            case 'jumper': return new Jumper(color);
+            case 'ogre': return new Ogre(color); // Add this line
             default: throw new Error('Invalid piece type');
         }
     }
@@ -294,5 +295,40 @@ class Jumper extends Piece {
         }
 
         return this.createCaptureResult(true, [jumpedTile.occupyingPiece]);
+    }
+}
+// In pieces.js
+class Ogre extends Piece {
+    constructor(color) {
+        super('ogre', color);
+    }
+
+    isValidMove(targetTile, board) {
+        if (targetTile.occupyingPiece) return false;
+
+        const dx = targetTile.x - this.currentTile.x;
+        const dy = targetTile.y - this.currentTile.y;
+
+        // Ogre moves two spaces in cardinal directions only
+        return (Math.abs(dx) === 2 && dy === 0) ||
+               (Math.abs(dy) === 2 && dx === 0);
+    }
+
+    isValidCapture(targetTile, board) {
+        if (!targetTile.occupyingPiece ||
+            targetTile.occupyingPiece.color === this.color) {
+            return this.createCaptureResult(false);
+        }
+
+        const dx = targetTile.x - this.currentTile.x;
+        const dy = targetTile.y - this.currentTile.y;
+
+        // Same movement pattern as regular moves
+        if ((Math.abs(dx) === 2 && dy === 0) ||
+            (Math.abs(dy) === 2 && dx === 0)) {
+            return this.createCaptureResult(true, [targetTile.occupyingPiece]);
+        }
+
+        return this.createCaptureResult(false);
     }
 }
