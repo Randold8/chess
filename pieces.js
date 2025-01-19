@@ -3,7 +3,8 @@ class Piece {
         this.name = name;
         this.color = color;
         this.currentTile = null;
-        this.hasMoved = false; // Useful for pawns and castling
+        this.hasMoved = false;
+        this.state = 'alive'; // New property
     }
     createCaptureResult(isValid, capturedPieces = []) {
         return {

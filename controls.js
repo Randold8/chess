@@ -56,16 +56,16 @@ class GameController {
         let moveSuccessful = false;
 
         if (targetTile && this.selectedPiece) {
-            // Check for valid captures first
             const captureResult = this.selectedPiece.isValidCapture(targetTile, this.board);
             if (captureResult.isValid) {
-                // Remove all captured pieces
+                // Mark captured pieces as dead
                 captureResult.capturedPieces.forEach(piece => {
                     const pieceTile = piece.currentTile;
                     if (pieceTile) pieceTile.clear();
+                    piece.state = 'dead';
+                    piece.currentTile = null;
                 });
 
-                // Move the capturing piece
                 this.selectedPiece.spawn(targetTile);
                 moveSuccessful = true;
             }
