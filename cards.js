@@ -3,7 +3,11 @@ class CardManager {
     constructor(board) {
         this.board = board;
         this.cardTypes = [
-            TelekinesisCard
+            OnslaughtCard,
+            TelekinesisCard,
+            DraughtCard,
+            BizarreMutationCard,
+            PolymorphCard
         ];
     }
 
