@@ -2,52 +2,78 @@
 class GameController {
     constructor(board) {
         this.board = board;
-        this.selectedPiece = null;
+        this.gameState = new GameState(board);
         this.isDragging = false;
+        this.selectedPiece = null;
         this.dragStartTile = null;
         this.dragOffset = { x: 0, y: 0 };
-        this.dragPosition = { x: 0, y: 0 }; // Initialize dragPosition
-        this.currentTurn = 'white';
+        this.dragPosition = { x: 0, y: 0 };
+
+        // Start first turn
+        this.gameState.startTurn();
     }
 
     mousePressed(mouseX, mouseY) {
-        const tileX = Math.floor(mouseX / tileSize);
-        const tileY = Math.floor(mouseY / tileSize);
-        const tile = this.board.getTileAt(tileX, tileY);
+        // Check card buttons first
+        if (this.gameState.phase === 'card-selection') {
+            if (this.gameState.isOverOkButton(mouseX, mouseY)) {
+                this.gameState.executeCard();
+                return;
+            }
+            if (this.gameState.isOverDeclineButton(mouseX, mouseY)) {
+                this.gameState.declineCard();
+                return;
+            }
 
-        if (tile && tile.occupyingPiece && tile.occupyingPiece.color === this.currentTurn) {
-            this.selectedPiece = tile.occupyingPiece;
-            this.isDragging = true;
-            this.dragStartTile = tile;
+            // Handle piece selection for card
+            const tileX = Math.floor(mouseX / tileSize);
+            const tileY = Math.floor(mouseY / tileSize);
+            const tile = this.board.getTileAt(tileX, tileY);
+            if (tile) {
+                this.gameState.handleCardSelection(tile);
+            }
+            return;
+        }
 
-            // Calculate offset within the tile for smooth dragging
-            this.dragOffset.x = mouseX - (tileX * tileSize);
-            this.dragOffset.y = mouseY - (tileY * tileSize);
+        // Normal piece movement
+        if (this.gameState.phase === 'normal') {
+            const tileX = Math.floor(mouseX / tileSize);
+            const tileY = Math.floor(mouseY / tileSize);
+            const tile = this.board.getTileAt(tileX, tileY);
 
-            // Initialize drag position to current mouse position
-            this.dragPosition = {
-                x: mouseX - this.dragOffset.x,
-                y: mouseY - this.dragOffset.y
-            };
+            if (tile && tile.occupyingPiece &&
+                tile.occupyingPiece.color === this.gameState.currentPlayer) {
+                this.selectedPiece = tile.occupyingPiece;
+                this.isDragging = true;
+                this.dragStartTile = tile;
 
-            // Clear the piece from its current tile while dragging
-            tile.clear();
+                // Calculate offset within the tile for smooth dragging
+                this.dragOffset.x = mouseX - (tileX * tileSize);
+                this.dragOffset.y = mouseY - (tileY * tileSize);
+
+                // Initialize drag position
+                this.dragPosition = {
+                    x: mouseX - this.dragOffset.x,
+                    y: mouseY - this.dragOffset.y
+                };
+
+                // Clear the piece from its current tile while dragging
+                tile.clear();
+            }
         }
     }
 
     mouseDragged(mouseX, mouseY) {
-        if (!this.isDragging) return;
+        if (!this.isDragging || this.gameState.phase !== 'normal') return;
 
-        // Update piece position for rendering
         this.dragPosition = {
             x: mouseX - this.dragOffset.x,
             y: mouseY - this.dragOffset.y
         };
     }
 
-    // controls.js
     mouseReleased(mouseX, mouseY) {
-        if (!this.isDragging) return;
+        if (!this.isDragging || this.gameState.phase !== 'normal') return;
 
         const targetX = Math.floor(mouseX / tileSize);
         const targetY = Math.floor(mouseY / tileSize);
@@ -56,6 +82,7 @@ class GameController {
         let moveSuccessful = false;
 
         if (targetTile && this.selectedPiece) {
+            // Check for valid captures first
             const captureResult = this.selectedPiece.isValidCapture(targetTile, this.board);
             if (captureResult.isValid) {
                 // Mark captured pieces as dead
@@ -80,9 +107,8 @@ class GameController {
             // Return piece to original position
             this.selectedPiece.spawn(this.dragStartTile);
         } else {
-            // Switch turns
-            this.currentTurn = this.currentTurn === 'white' ? 'black' : 'white';
-            this.selectedPiece.hasMoved = true;
+            // End turn if move was successful
+            this.gameState.endTurn();
         }
 
         // Reset drag state
@@ -92,9 +118,9 @@ class GameController {
         this.dragPosition = { x: 0, y: 0 };
     }
 
-
-    draw() {
-        // Draw currently dragged piece if any
+    // Separate drawing UI elements from piece drawing
+    drawUI() {
+        // Draw dragged piece if any
         if (this.isDragging && this.selectedPiece) {
             fill(0);
             textAlign(CENTER, CENTER);
@@ -105,5 +131,8 @@ class GameController {
                 this.dragPosition.y + tileSize/2
             );
         }
+
+        // Draw game state UI
+        this.gameState.draw();
     }
 }

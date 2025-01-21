@@ -4,7 +4,7 @@ class Piece {
         this.color = color;
         this.currentTile = null;
         this.hasMoved = false;
-        this.state = 'alive'; // New property
+        this.state = 'alive';
     }
     createCaptureResult(isValid, capturedPieces = []) {
         return {
@@ -23,7 +23,35 @@ class Piece {
         this.currentTile = tile;
         tile.occupy(this);
     }
+transform(newPieceName) {
+    // Create new piece of desired type
+    const newPiece = Piece.createPiece(newPieceName, this.color);
+    newPiece.board = this.board; // Transfer board reference
 
+    // Transfer important properties
+    newPiece.state = this.state;
+    newPiece.hasMoved = this.hasMoved;
+
+    // Replace this piece in the board's pieces array
+    const pieceIndex = this.board.pieces.indexOf(this);
+    if (pieceIndex > -1) {
+        this.board.pieces[pieceIndex] = newPiece;
+    }
+
+    // Move to current tile if exists
+    const tile = this.currentTile;
+    if (tile) {
+        tile.clear();
+        newPiece.spawn(tile);
+    }
+
+    return newPiece;
+}
+
+    // Add helper method to check if piece is of certain types
+    isOfType(...types) {
+        return types.includes(this.name);
+    }
     // Factory method to create specific piece types
     static createPiece(name, color) {
         switch(name.toLowerCase()) {
