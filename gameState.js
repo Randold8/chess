@@ -4,9 +4,10 @@ class GameState{
         this.board = board;
         this.currentPlayer = 'white';
         this.turnCount = 0;
-        this.cardDrawInterval = 3; // Draw a card every 3 turns
+        this.cardDrawInterval = 3;
         this.currentCard = null;
-        this.phase = 'normal'; // 'normal', 'card-selection', 'card-execution'
+        this.phase = 'normal';
+        this.cardManager = new CardManager(board);
     }
 
     startTurn() {
@@ -18,35 +19,42 @@ class GameState{
     }
 
     drawCard() {
-        const cardTypes = [
-            OnslaughtCard,
-            PolymorphCard,
-            BizarreMutationCard,
-            DraughtCard
-        ];
-        const CardClass = cardTypes[Math.floor(Math.random() * cardTypes.length)];
+        const availableCards = this.cardManager.getAvailableCards();
 
+        if (availableCards.length === 0) {
+            console.log("No cards available to draw!");
+            return;
+        }
+
+        const CardClass = availableCards[Math.floor(Math.random() * availableCards.length)];
         this.currentCard = new CardClass(this.board);
         this.currentCard.determineSelectablePieces();
         this.phase = 'card-selection';
-    }
+    }   
 
     handleCardSelection(tile) {
         if (!this.currentCard || this.phase !== 'card-selection') return;
-
+    
         const piece = tile.occupyingPiece;
-        if (!piece) return;
-
-        this.currentCard.toggleSelection(piece);
+        // Try to select either the piece or the tile itself
+        const target = (this.currentCard.currentStage === 0) ? piece : tile;
+    
+        if (target) {
+            console.log('Attempting selection of:', target); // Debug
+            this.currentCard.toggleSelection(target);
+        }
     }
 
     executeCard() {
         if (!this.currentCard || this.phase !== 'card-selection') return;
 
-        this.currentCard.execute();
-        this.board.resetTileStates(); // Reset states after execution
-        this.currentCard = null;
-        this.phase = 'normal';
+        // Only execute if we're at the final stage
+        if (this.currentCard.currentStage === this.currentCard.stages - 1) {
+            this.currentCard.execute();
+            this.board.resetTileStates();
+            this.currentCard = null;
+            this.phase = 'normal';
+        }
     }
 
     declineCard() {
