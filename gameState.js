@@ -1,5 +1,5 @@
 // gameState.js
-class GameState{
+class GameState {
     constructor(board) {
         this.board = board;
         this.currentPlayer = 'white';
@@ -28,21 +28,17 @@ class GameState{
 
         const CardClass = availableCards[Math.floor(Math.random() * availableCards.length)];
         this.currentCard = new CardClass(this.board);
-        this.currentCard.determineSelectablePieces();
+        this.currentCard.determineSelectables();
         this.phase = 'card-selection';
-    }   
+        this.updateTileStates(); // Add this line
+    }  
 
     handleCardSelection(tile) {
         if (!this.currentCard || this.phase !== 'card-selection') return;
-    
-        const piece = tile.occupyingPiece;
-        // Try to select either the piece or the tile itself
-        const target = (this.currentCard.currentStage === 0) ? piece : tile;
-    
-        if (target) {
-            console.log('Attempting selection of:', target); // Debug
-            this.currentCard.toggleSelection(target);
-        }
+
+        // If the tile has a piece, pass the piece. Otherwise, pass the tile itself
+        const selectTarget = tile.occupyingPiece || tile;
+        this.currentCard.toggleSelection(selectTarget);
     }
 
     executeCard() {
@@ -60,7 +56,7 @@ class GameState{
     declineCard() {
         if (!this.currentCard || this.phase !== 'card-selection') return;
 
-        this.board.resetTileStates(); // Reset states after declining
+        this.board.resetTileStates();
         this.currentCard = null;
         this.phase = 'normal';
     }
@@ -68,23 +64,6 @@ class GameState{
     endTurn() {
         this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
         this.startTurn();
-    }
-
-    draw() {
-        if (this.currentCard && this.phase === 'card-selection') {
-            // Draw card UI only, not pieces
-            this.currentCard.draw(width - 220, height - 120, 200, 100);
-
-            // Draw buttons
-            fill(200);
-            rect(width - 220, height - 160, 90, 30);
-            rect(width - 110, height - 160, 90, 30);
-
-            fill(0);
-            textAlign(CENTER, CENTER);
-            text('OK', width - 175, height - 145);
-            text('Decline', width - 65, height - 145);
-        }
     }
 
     // Update button hit detection to match new positions
@@ -99,4 +78,30 @@ class GameState{
                x > width - 110 && x < width - 20 &&
                y > height - 160 && y < height - 130;
     }
+    updateTileStates() {
+        // Reset all tiles first
+        this.board.resetTileStates();
+
+        // If there's an active card in selection phase, update tile states
+        if (this.currentCard && this.phase === 'card-selection') {
+            this.currentCard.determineSelectables();
+
+            // Update tile states based on selectables
+            this.currentCard.selectableTiles.forEach(tile => {
+                tile.state = 'selectable';
+            });
+
+            // Update selected tiles
+            for (let stage = 0; stage <= this.currentCard.currentStage; stage++) {
+                const stageSelections = this.currentCard.selectedObjects.get(stage);
+                if (stageSelections) {
+                    stageSelections.forEach((targetTile, selection) => {
+                        targetTile.state = 'selected';
+                    });
+                }
+            }
+        }
+    }
 }
+
+

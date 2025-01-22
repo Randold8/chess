@@ -31,6 +31,7 @@ class GameController {
             const tile = this.board.getTileAt(tileX, tileY);
             if (tile) {
                 this.gameState.handleCardSelection(tile);
+                this.gameState.updateTileStates(); // Add this line
             }
             return;
         }
@@ -119,20 +120,50 @@ class GameController {
     }
 
     // Separate drawing UI elements from piece drawing
-    drawUI() {
-        // Draw dragged piece if any
+    getUIState() {
+        const state = {
+            dragState: null,
+            cardState: null,
+            buttonStates: null
+        };
+        if (this.gameState.phase === 'card-selection') {
+            this.gameState.updateTileStates();
+        }
         if (this.isDragging && this.selectedPiece) {
-            fill(0);
-            textAlign(CENTER, CENTER);
-            textSize(tileSize * 0.8);
-            text(
-                PIECE_EMOJIS[this.selectedPiece.color][this.selectedPiece.name],
-                this.dragPosition.x + tileSize/2,
-                this.dragPosition.y + tileSize/2
-            );
+            state.dragState = {
+                piece: this.selectedPiece,
+                position: this.dragPosition
+            };
         }
 
-        // Draw game state UI
-        this.gameState.draw();
+        if (this.gameState.currentCard && this.gameState.phase === 'card-selection') {
+            state.cardState = {
+                x: width - 220,
+                y: height - 120,
+                width: 200,
+                height: 100,
+                ...this.gameState.currentCard.getState()
+            };
+
+            state.buttonStates = [
+                {
+                    x: width - 220,
+                    y: height - 160,
+                    width: 90,
+                    height: 30,
+                    text: 'OK'
+                },
+                {
+                    x: width - 110,
+                    y: height - 160,
+                    width: 90,
+                    height: 30,
+                    text: 'Decline'
+                }
+            ];
+        }
+
+        return state;
     }
 }
+

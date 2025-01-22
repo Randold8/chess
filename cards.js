@@ -3,11 +3,11 @@ class CardManager {
     constructor(board) {
         this.board = board;
         this.cardTypes = [
-            OnslaughtCard,
             TelekinesisCard,
+            OnslaughtCard,
+            PolymorphCard,
             DraughtCard,
-            BizarreMutationCard,
-            PolymorphCard
+            BizarreMutationCard
         ];
     }
 
@@ -32,51 +32,122 @@ class Card {
         this.board = board;
         this.stages = 1;
         this.currentStage = 0;
-        this.selectablePieces = new Map();
-        this.selectedPieces = new Map();
-        this.maxSelections = [1];
-
-        // Initialize maps for all stages
+        this.selectableTiles = new Set();        // Tiles that can be selected
+        this.selectedObjects = new Map();         // Stage -> Map of selected object to target tile
+        this.maxSelections = [1];                 // How many selections allowed per stage
         this.initializeStages();
     }
+
+    // Initialize selection tracking for each stage
     initializeStages() {
+        this.selectedObjects.clear();
         for (let i = 0; i < this.stages; i++) {
-            this.selectedPieces.set(i, new Map());
+            this.selectedObjects.set(i, new Map());
         }
     }
+
+    // Reset card state
     reset() {
         this.currentStage = 0;
-        this.selectedPieces.clear();
         this.initializeStages();
-        this.determineSelectablePieces();
+        this.determineSelectables();
     }
 
-    // Called when advancing to next stage
+    // Stage management
     advanceStage() {
         if (this.currentStage < this.stages - 1) {
             this.currentStage++;
+            this.determineSelectables();
             return true;
         }
         return false;
     }
 
-    // Returns true if current stage has reached its selection limit
     isStageComplete() {
-        const currentSelections = this.selectedPieces.get(this.currentStage);
+        const currentSelections = this.selectedObjects.get(this.currentStage);
         return currentSelections.size >= this.maxSelections[this.currentStage];
     }
-    addSelectable(target, destinationTile) {
-        if (target && destinationTile) {
-            // If target is a piece, verify it's alive
-            if (target instanceof Piece) {
-                if (target.state !== 'alive') return false;
+
+    // Selection management
+    addSelectable(target) {
+        if (!target) return false;
+
+        if (target instanceof Piece) {
+            if (target.state === 'alive' && target.currentTile) {
+                this.selectableTiles.add(target.currentTile);
+                return true;
             }
-            this.selectablePieces.set(target, destinationTile);
+        }
+        else if (target instanceof Tile) {
+            this.selectableTiles.add(target);
             return true;
         }
         return false;
     }
-    // Helper method to get all pieces of a specific type and color
+
+    toggleSelection(target) {
+        // Check if this target was selected in any previous stage
+        for (let stage = 0; stage < this.currentStage; stage++) {
+            const stageSelections = this.selectedObjects.get(stage);
+            if (Array.from(stageSelections.keys()).some(obj =>
+                (obj instanceof Piece && target instanceof Piece && obj === target) ||
+                (obj instanceof Tile && target instanceof Tile && obj === target))) {
+                // Found in a previous stage, reset to that stage
+                this.currentStage = stage;
+                // Clear all selections after this stage
+                for (let i = stage; i < this.stages; i++) {
+                    this.selectedObjects.get(i).clear();
+                }
+                this.determineSelectables();
+                this.board.gameState.updateTileStates();
+                return false;
+            }
+        }
+
+        // Handle current stage selection
+        const currentSelections = this.selectedObjects.get(this.currentStage);
+
+        // If target is a piece, we're selecting its tile
+        const targetTile = (target instanceof Piece) ? target.currentTile : target;
+
+        // If this object is already selected in current stage
+        if (Array.from(currentSelections.keys()).some(obj =>
+            (obj instanceof Piece && target instanceof Piece && obj === target) ||
+            (obj instanceof Tile && target instanceof Tile && obj === target))) {
+
+            // Remove selection
+            for (let [key, value] of currentSelections) {
+                if ((key instanceof Piece && target instanceof Piece && key === target) ||
+                    (key instanceof Tile && target instanceof Tile && key === target)) {
+                    currentSelections.delete(key);
+                    break;
+                }
+            }
+            this.determineSelectables();
+            this.board.gameState.updateTileStates();
+            return false;
+        }
+
+        // Check if target's tile is selectable and we haven't hit selection limit
+        if (this.selectableTiles.has(targetTile) &&
+            currentSelections.size < this.maxSelections[this.currentStage]) {
+
+            currentSelections.set(target, targetTile);
+
+            if (this.isStageComplete()) {
+                this.advanceStage();
+            } else {
+                this.determineSelectables();
+            }
+
+            this.board.gameState.updateTileStates();
+            return true;
+        }
+
+        return false;
+    }
+
+    // Utility methods for card creation
     getPiecesByType(pieceName, colorRequirement = 'any') {
         return this.board.pieces.filter(piece => {
             if (piece.state === 'dead') return false;
@@ -94,18 +165,7 @@ class Card {
             }
         });
     }
-    transformPiece(piece, newType) {
-        return this.board.transformPiece(piece, newType);
-    }
-    movePiece(piece, targetTile) {
-        if (piece && piece.state === 'alive' && targetTile) {
-            piece.currentTile.clear();
-            piece.spawn(targetTile);
-            return true;
-        }
-        return false;
-    }
-    // Add helper method to get pieces of multiple types
+
     getPiecesByTypes(pieceNames, colorRequirement = 'any') {
         return this.board.pieces.filter(piece => {
             if (piece.state === 'dead') return false;
@@ -124,263 +184,19 @@ class Card {
         });
     }
 
-    // Called when card is drawn to determine valid selections
-    determineSelectablePieces() {
-        this.selectablePieces.clear();
-        // Override in subclasses
-    }
-    checkRequirements() {
-        // Override in subclasses
-        return false;
+    // Board manipulation methods
+    transformPiece(piece, newType) {
+        return this.board.transformPiece(piece, newType);
     }
 
-    // Handle piece selection/deselection
-    toggleSelection(piece) {
-        const currentSelections = this.selectedPieces.get(this.currentStage);
-
-        if (currentSelections.has(piece)) {
-            currentSelections.delete(piece);
-            // If we unselect in a later stage, go back to stage 0
-            if (this.currentStage > 0) {
-                this.reset();
-            } else {
-                this.determineSelectablePieces();
-            }
-            return false;
-        } else if (this.selectablePieces.has(piece) &&
-                   currentSelections.size < this.maxSelections[this.currentStage]) {
-            currentSelections.set(piece, this.selectablePieces.get(piece));
-
-            // If stage is complete, automatically advance to next stage
-            if (this.isStageComplete()) {
-                this.advanceStage();
-            }
-
-            // Recalculate selectable pieces for the new stage
-            this.determineSelectablePieces();
-            return true;
-        }
-        return null;
-    }
-
-
-    execute() {
-        // Override in subclasses
-    }
-
-    draw(x, y, width, height) {
-        // Draw card background
-        fill(255);
-        stroke(0);
-        rect(x, y, width, height);
-
-        // Draw card text
-        fill(0);
-        textAlign(CENTER, TOP);
-        textSize(20);
-        text(this.name, x + width/2, y + 10);
-
-        textSize(16);
-        text(this.description, x + width/2, y + 40);
-    }
-
-    // Helper method to highlight selectable tiles
-    highlightSelectableTiles() {
-        // Reset all tiles to normal state first
-        this.board.tiles.forEach(tile => tile.resetState());
-
-        // Highlight selectable options for current stage
-        this.selectablePieces.forEach((targetTile, target) => {
-            if (target instanceof Piece) {
-                if (target.currentTile && target.state === 'alive') {
-                    target.currentTile.state = 'selectable';
-                }
-            } else if (target instanceof Tile) {
-                target.state = 'selectable';
-            }
-        });
-
-        // Highlight selections from all completed stages
-        for (let stage = 0; stage < this.currentStage + 1; stage++) {
-            const stageSelections = this.selectedPieces.get(stage);
-            if (stageSelections) {
-                stageSelections.forEach((targetTile, target) => {
-                    if (target instanceof Piece) {
-                        if (target.currentTile && target.state === 'alive') {
-                            target.currentTile.state = 'selected';
-                        }
-                    } else if (target instanceof Tile) {
-                        target.state = 'selected';
-                    }
-                });
-            }
-        }
-
-        // For the current stage, also highlight target tiles if they're different from source
-        const currentSelections = this.selectedPieces.get(this.currentStage);
-        if (currentSelections) {
-            currentSelections.forEach((targetTile, target) => {
-                if (targetTile !== target && targetTile instanceof Tile) {
-                    targetTile.state = 'selected';
-                }
-            });
-        }
-    }
-}
-
-class OnslaughtCard extends Card {
-    constructor(board) {
-        super("Onslaught",
-              "Move up to three pawns one tile forward",
-              board);
-        this.maxSelections = 3;
-    }
-    checkRequirements() {
-        const pawns = this.getPiecesByType('pawn', 'own');
-        // Check if any pawn has a free space in front
-        return pawns.some(pawn => {
-            const forwardY = pawn.currentTile.y + (pawn.color === 'white' ? -1 : 1);
-            const forwardTile = this.board.getTileAt(pawn.currentTile.x, forwardY);
-            return forwardTile && !forwardTile.occupyingPiece;
-        });
-    }
-
-    determineSelectablePieces() {
-        this.selectablePieces.clear();
-
-        // Get all friendly pawns
-        const pawns = this.getPiecesByType('pawn', 'own');
-
-        // Check each pawn for valid forward movement
-        pawns.forEach(pawn => {
-            const forwardY = pawn.currentTile.y + (pawn.color === 'white' ? -1 : 1);
-            const forwardTile = this.board.getTileAt(pawn.currentTile.x, forwardY);
-
-            if (forwardTile && !forwardTile.occupyingPiece) {
-                this.addSelectablePiece(pawn, forwardTile);
-            }
-        });
-    }
-
-    execute() {
-        this.selectedPieces.forEach((targetTile, piece) => {
+    movePiece(piece, targetTile) {
+        if (piece && piece.state === 'alive' && targetTile) {
             piece.currentTile.clear();
             piece.spawn(targetTile);
-        });
-    }
-}
-class PolymorphCard extends Card {
-    constructor(board) {
-        super("Polymorph",
-              "Demote any bishop or rook to a knight",
-              board);
-        this.maxSelections = 1;
-    }
-    checkRequirements() {
-        const pieces = this.getPiecesByTypes(['bishop', 'rook'], 'any');
-        return pieces.length > 0;
-    }
-    determineSelectablePieces() {
-        this.selectablePieces.clear();
-        const pieces = this.getPiecesByTypes(['bishop', 'rook'], 'any');
-        pieces.forEach(piece => {
-            this.addSelectablePiece(piece, piece.currentTile);
-        });
-    }
-
-    execute() {
-        this.selectedPieces.forEach((targetTile, piece) => {
-            this.transformPiece(piece, 'knight');
-        });
-    }
-}
-class BizarreMutationCard extends Card {
-    constructor(board) {
-        super("Bizarre Mutation",
-              "Promote a pawn to a jumper",
-              board);
-        this.maxSelections = 1;
-    }
-    checkRequirements() {
-        const pawns = this.getPiecesByType('pawn', 'any');
-        return pawns.length > 0;
-    }
-    determineSelectablePieces() {
-        this.selectablePieces.clear();
-        const pawns = this.getPiecesByType('pawn', 'any');
-        pawns.forEach(pawn => {
-            this.addSelectablePiece(pawn, pawn.currentTile);
-        });
-    }
-
-    execute() {
-        this.selectedPieces.forEach((targetTile, piece) => {
-            this.transformPiece(piece, 'jumper');
-        });
-    }
-}
-
-class DraughtCard extends Card {
-    constructor(board) {
-        super("Draught",
-              "Demote a rook, bishop or knight to a jumper",
-              board);
-        this.maxSelections = 1;
-    }
-    checkRequirements() {
-        const pieces = this.getPiecesByTypes(['rook', 'bishop', 'knight'], 'any');
-        return pieces.length > 0;
-    }
-    determineSelectablePieces() {
-        this.selectablePieces.clear();
-        const pieces = this.getPiecesByTypes(['rook', 'bishop', 'knight'], 'any');
-        pieces.forEach(piece => {
-            this.addSelectablePiece(piece, piece.currentTile);
-        });
-    }
-
-    execute() {
-        this.selectedPieces.forEach((targetTile, piece) => {
-            this.transformPiece(piece, 'jumper');
-        });
-    }
-}
-// Example of a multi-stage card
-class TelekinesisCard extends Card {
-    constructor(board) {
-        super("Telekinesis",
-              "Move an enemy pawn one cardinal tile",
-              board);
-        this.stages = 2;
-        this.maxSelections = [1, 1];
-        this.initializeStages();
-    }
-
-    determineSelectablePieces() {
-        this.selectablePieces.clear();
-
-        if (this.currentStage === 0) {
-            // First stage: select enemy pawn
-            const pawns = this.getPiecesByType('pawn', 'enemy');
-            pawns.forEach(pawn => {
-                if (this.hasValidCardinalMoves(pawn)) {
-                    this.addSelectable(pawn, pawn.currentTile);
-                }
-            });
+            return true;
         }
-        else if (this.currentStage === 1) {
-            // Second stage: select destination tile
-            const selectedPawn = Array.from(this.selectedPieces.get(0).keys())[0];
-            if (selectedPawn) {
-                const cardinalMoves = this.getValidCardinalMoves(selectedPawn);
-                cardinalMoves.forEach(tile => {
-                    this.addSelectable(tile, tile); // The tile itself is both the target and destination
-                });
-            }
-        }
+        return false;
     }
-
-    // Helper methods for cleaner code
     hasValidCardinalMoves(piece) {
         const directions = [[0,1], [0,-1], [1,0], [-1,0]];
         return directions.some(([dx,dy]) => {
@@ -406,15 +222,194 @@ class TelekinesisCard extends Card {
         return validMoves;
     }
 
+    // Methods to be overridden by specific cards
+    determineSelectables() {
+        this.selectableTiles.clear();
+        // Override in subclasses
+    }
+
+    checkRequirements() {
+        return false;  // Override in subclasses
+    }
+
     execute() {
-        if (this.currentStage !== this.stages - 1) return; // Don't execute if not at final stage
+        // Override in subclasses
+    }
 
-        const pawn = Array.from(this.selectedPieces.get(0).keys())[0];
-        const targetTile = Array.from(this.selectedPieces.get(1).values())[0];
+    // Visual representation
+    getState() {
+        return {
+            name: this.name,
+            description: this.description
+        };
+    }
+}
 
-        if (pawn && targetTile) {
-            this.movePiece(pawn, targetTile);
+
+class OnslaughtCard extends Card {
+    constructor(board) {
+        super("Onslaught",
+              "Move up to three pawns one tile forward",
+              board);
+        this.stages = 1;
+        this.maxSelections = [3];
+        this.initializeStages();
+    }
+
+    determineSelectables() {
+        this.selectableTiles.clear();
+        const pawns = this.getPiecesByType('pawn', 'own');
+
+        pawns.forEach(pawn => {
+            const forwardY = pawn.currentTile.y + (pawn.color === 'white' ? -1 : 1);
+            const forwardTile = this.board.getTileAt(pawn.currentTile.x, forwardY);
+
+            if (forwardTile && !forwardTile.occupyingPiece) {
+                this.addSelectable(pawn);
+            }
+        });
+    }
+
+    execute() {
+        const selections = this.selectedObjects.get(0);
+        selections.forEach((targetTile, pawn) => {
+            const forwardY = pawn.currentTile.y + (pawn.color === 'white' ? -1 : 1);
+            const forwardTile = this.board.getTileAt(pawn.currentTile.x, forwardY);
+            this.movePiece(pawn, forwardTile);
+        });
+    }
+
+    checkRequirements() {
+        const pawns = this.getPiecesByType('pawn', 'own');
+        return pawns.some(pawn => {
+            const forwardY = pawn.currentTile.y + (pawn.color === 'white' ? -1 : 1);
+            const forwardTile = this.board.getTileAt(pawn.currentTile.x, forwardY);
+            return forwardTile && !forwardTile.occupyingPiece;
+        });
+    }
+}
+
+class PolymorphCard extends Card {
+    constructor(board) {
+        super("Polymorph",
+              "Demote any bishop or rook to a knight",
+              board);
+        this.stages = 1;
+        this.maxSelections = [1];
+        this.initializeStages();
+    }
+
+    determineSelectables() {
+        this.selectableTiles.clear();
+        const pieces = this.getPiecesByTypes(['bishop', 'rook'], 'any');
+        pieces.forEach(piece => this.addSelectable(piece));
+    }
+
+    execute() {
+        const selections = this.selectedObjects.get(0);
+        selections.forEach((targetTile, piece) => {
+            this.transformPiece(piece, 'knight');
+        });
+    }
+
+    checkRequirements() {
+        const pieces = this.getPiecesByTypes(['bishop', 'rook'], 'any');
+        return pieces.length > 0;
+    }
+}
+
+class BizarreMutationCard extends Card {
+    constructor(board) {
+        super("Bizarre Mutation",
+              "Promote a pawn to a jumper",
+              board);
+        this.stages = 1;
+        this.maxSelections = [1];
+        this.initializeStages();
+    }
+
+    determineSelectables() {
+        this.selectableTiles.clear();
+        const pawns = this.getPiecesByType('pawn', 'any');
+        pawns.forEach(pawn => this.addSelectable(pawn));
+    }
+
+    execute() {
+        const selections = this.selectedObjects.get(0);
+        selections.forEach((targetTile, pawn) => {
+            this.transformPiece(pawn, 'jumper');
+        });
+    }
+
+    checkRequirements() {
+        const pawns = this.getPiecesByType('pawn', 'any');
+        return pawns.length > 0;
+    }
+}
+
+class DraughtCard extends Card {
+    constructor(board) {
+        super("Draught",
+              "Demote a rook, bishop or knight to a jumper",
+              board);
+        this.stages = 1;
+        this.maxSelections = [1];
+        this.initializeStages();
+    }
+
+    determineSelectables() {
+        this.selectableTiles.clear();
+        const pieces = this.getPiecesByTypes(['rook', 'bishop', 'knight'], 'any');
+        pieces.forEach(piece => this.addSelectable(piece));
+    }
+
+    execute() {
+        const selections = this.selectedObjects.get(0);
+        selections.forEach((targetTile, piece) => {
+            this.transformPiece(piece, 'jumper');
+        });
+    }
+
+    checkRequirements() {
+        const pieces = this.getPiecesByTypes(['rook', 'bishop', 'knight'], 'any');
+        return pieces.length > 0;
+    }
+}
+
+class TelekinesisCard extends Card {
+    constructor(board) {
+        super("Telekinesis",
+              "Move an enemy pawn one cardinal tile",
+              board);
+        this.stages = 2;
+        this.maxSelections = [1, 1];
+        this.initializeStages();
+    }
+
+    determineSelectables() {
+        this.selectableTiles.clear();
+
+        if (this.currentStage === 0) {
+            // First stage: select enemy pawn
+            const pawns = this.getPiecesByType('pawn', 'enemy');
+            pawns.forEach(pawn => {
+                if (this.hasValidCardinalMoves(pawn)) {
+                    this.addSelectable(pawn);
+                }
+            });
         }
+        else if (this.currentStage === 1) {
+            // Second stage: select destination tile
+            const selectedPawn = Array.from(this.selectedObjects.get(0).keys())[0];
+            const cardinalMoves = this.getValidCardinalMoves(selectedPawn);
+            cardinalMoves.forEach(tile => this.addSelectable(tile));
+        }
+    }
+
+    execute() {
+        const pawn = Array.from(this.selectedObjects.get(0).keys())[0];
+        const targetTile = Array.from(this.selectedObjects.get(1).values())[0];
+        this.movePiece(pawn, targetTile);
     }
 
     checkRequirements() {

@@ -1,5 +1,5 @@
 // sketch.js
-
+let drawManager;
 // Piece emoji mapping
 const PIECE_EMOJIS = {
     white: {
@@ -45,32 +45,6 @@ class Tile {
     clear() {
         this.occupyingPiece = null;
     }
-
-    draw(tileSize) {
-        // Base tile color
-        let baseColor;
-        switch(this.state) {
-            case 'selectable':
-                baseColor = (this.x + this.y) % 2 === 0 ?
-                    color(200, 255, 200) : // Light green
-                    color(150, 200, 150);  // Dark green
-                break;
-            case 'selected':
-                baseColor = (this.x + this.y) % 2 === 0 ?
-                    color(150, 255, 150) : // Brighter green
-                    color(100, 200, 100);  // Darker green
-                break;
-            default: // 'normal'
-                baseColor = (this.x + this.y) % 2 === 0 ?
-                    color(255) : // White
-                    color(128);  // Gray
-        }
-
-        fill(baseColor);
-        noStroke();
-        rect(this.x * tileSize, this.y * tileSize, tileSize, tileSize);
-    }
-
     resetState() {
         this.state = 'normal';
     }
@@ -104,34 +78,15 @@ class Graveyard {
         });
     }
 
-    draw() {
-        // Draw graveyard background
-        fill(200);
-        rect(this.x, this.y, this.width, this.height);
-
-        // Draw pieces
-        let xOffset = 10;
-        let yOffset = 20;
-        textSize(tileSize * 0.4); // Smaller size for graveyard pieces
-
-        Object.entries(this.deadPieces).forEach(([pieceName, count]) => {
-            if (count > 0) {
-                // Draw piece emoji
-                fill(0); // Set fill to black for the piece
-                textAlign(LEFT, CENTER);
-                text(PIECE_EMOJIS[this.color][pieceName],
-                     this.x + xOffset,
-                     this.y + yOffset);
-
-                // Draw count
-                textAlign(LEFT, CENTER);
-                text(`x${count}`,
-                     this.x + xOffset + tileSize * 0.5, // Increased spacing
-                     this.y + yOffset);
-
-                yOffset += tileSize * 0.5;
-            }
-        });
+    getState() {
+        return {
+            color: this.color,
+            x: this.x,
+            y: this.y,
+            width: this.width,
+            height: this.height,
+            deadPieces: this.deadPieces
+        };
     }
 }
 
@@ -188,28 +143,11 @@ class Board {
         return this.tiles.find(tile => tile.x === x && tile.y === y);
     }
 
-    draw() {
-        // Draw tiles with their states
-        this.tiles.forEach(tile => tile.draw(tileSize));
-
-        // If there's an active card, update tile states
-        if (this.gameState?.currentCard && this.gameState.phase === 'card-selection') {
-            this.gameState.currentCard.highlightSelectableTiles();
-        }
-
-        // Draw pieces last
-        this.pieces.forEach(piece => {
-            if (piece.state === 'alive' && piece.currentTile) {
-                fill(0);
-                textAlign(CENTER, CENTER);
-                textSize(tileSize * 0.8);
-                text(
-                    PIECE_EMOJIS[piece.color][piece.name],
-                    piece.currentTile.x * tileSize + tileSize/2,
-                    piece.currentTile.y * tileSize + tileSize/2
-                );
-            }
-        });
+    getState() {
+        return {
+            tiles: this.tiles,
+            pieces: this.pieces
+        };
     }
 
     resetTileStates() {
@@ -227,7 +165,7 @@ function setup() {
     createCanvas(1000, 800);
     board = new Board();
     tileSize = 800 / 8; // Board size remains 800x800
-
+    drawManager = new DrawManager();
     // Create graveyards
     whiteGraveyard = new Graveyard('white', 810, 400, 180, 390);
     blackGraveyard = new Graveyard('black', 810, 10, 180, 390);
@@ -277,11 +215,33 @@ function setup() {
 
 function draw() {
     background(220);
-    // Only draw the board once
-    board.draw();
-    // Draw game state UI (card, buttons, etc.) but not pieces
-    gameController.drawUI();
-}   
+
+    // Draw board
+    drawManager.drawBoard(board.getState());
+
+    // Draw graveyards
+    drawManager.drawGraveyard(whiteGraveyard.getState());
+    drawManager.drawGraveyard(blackGraveyard.getState());
+
+    // Draw UI elements
+    const uiState = gameController.getUIState();
+
+    if (uiState.dragState) {
+        drawManager.drawDraggedPiece(
+            uiState.dragState.piece,
+            uiState.dragState.position
+        );
+    }
+
+    if (uiState.cardState) {
+        drawManager.drawCard(uiState.cardState);
+    }
+
+    if (uiState.buttonStates) {
+        drawManager.drawCardButtons(uiState.buttonStates);
+    }
+}
+   
 
 function mousePressed() {
     gameController.mousePressed(mouseX, mouseY);
@@ -294,3 +254,4 @@ function mouseDragged() {
 function mouseReleased() {
     gameController.mouseReleased(mouseX, mouseY);
 }
+
