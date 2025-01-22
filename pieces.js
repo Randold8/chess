@@ -5,6 +5,12 @@ class Piece {
         this.currentTile = null;
         this.hasMoved = false;
         this.state = 'alive';
+        this.stats = {
+            canMove: true,
+            canAltMove: true,
+            canCapture: true,
+            canAltCapture: true
+        }
     }
     createCaptureResult(isValid, capturedPieces = []) {
         return {
@@ -126,6 +132,13 @@ class Pawn extends Piece {
 
         return this.createCaptureResult(false);
     }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
+    }
 }
 
 class Rook extends Piece {
@@ -155,6 +168,13 @@ class Rook extends Piece {
         }
 
         return this.createCaptureResult(false);
+    }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
     }
 }
 
@@ -186,6 +206,13 @@ class Knight extends Piece {
 
         return this.createCaptureResult(false);
     }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
+    }
 }
 
 class Bishop extends Piece {
@@ -215,6 +242,13 @@ class Bishop extends Piece {
         }
 
         return this.createCaptureResult(false);
+    }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
     }
 }
 
@@ -250,6 +284,13 @@ class Queen extends Piece {
 
         return this.createCaptureResult(false);
     }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
+    }
 }
 // pieces.js (continued)
 class King extends Piece {
@@ -280,6 +321,15 @@ class King extends Piece {
 
         return this.createCaptureResult(false);
     }
+
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
+    }
+
 }
 class Jumper extends Piece {
     constructor(color) {
@@ -324,6 +374,13 @@ class Jumper extends Piece {
 
         return this.createCaptureResult(true, [jumpedTile.occupyingPiece]);
     }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
+    }
 }
 // In pieces.js
 class Ogre extends Piece {
@@ -358,5 +415,12 @@ class Ogre extends Piece {
         }
 
         return this.createCaptureResult(false);
+    }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
     }
 }

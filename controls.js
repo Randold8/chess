@@ -85,6 +85,7 @@ class GameController {
         if (targetTile && this.selectedPiece) {
             // Check for valid captures first
             const captureResult = this.selectedPiece.isValidCapture(targetTile, this.board);
+            const captureAltResult = this.selectedPiece.isValidAltCapture(targetTile, this.board);
             if (captureResult.isValid) {
                 // Mark captured pieces as dead
                 captureResult.capturedPieces.forEach(piece => {
@@ -97,8 +98,26 @@ class GameController {
                 this.selectedPiece.spawn(targetTile);
                 moveSuccessful = true;
             }
+            //Alt capture
+            else if (captureAltResult.isValid) {
+                // Mark captured pieces as dead
+                captureAltResult.capturedPieces.forEach(piece => {
+                    const pieceTile = piece.currentTile;
+                    if (pieceTile) pieceTile.clear();
+                    piece.state = 'dead';
+                    piece.currentTile = null;
+                });
+
+                this.selectedPiece.spawn(targetTile);
+                moveSuccessful = true;
+            }
             // If no valid capture, check for valid move
             else if (this.selectedPiece.isValidMove(targetTile, this.board)) {
+                this.selectedPiece.spawn(targetTile);
+                moveSuccessful = true;
+            }
+            //Alt move
+            else if (this.selectedPiece.isValidAltMove(targetTile, this.board)) {
                 this.selectedPiece.spawn(targetTile);
                 moveSuccessful = true;
             }
