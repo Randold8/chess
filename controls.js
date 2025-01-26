@@ -134,6 +134,10 @@ class GameController {
             if(this.selectedPiece.name=='pawn'  && (targetY===0 || targetY===7 )){
                 board.transformPiece(this.selectedPiece, 'queen');
             }
+            const pawns = board.getPiecesByType('pawn', 'enemy');
+            for (let i = 0; i < pawns.length; i++) {
+                pawns[i].hasDoubleMoved=false;
+            }
 
 
             this.gameState.endTurn();

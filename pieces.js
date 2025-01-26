@@ -4,6 +4,7 @@ class Piece {
         this.color = color;
         this.currentTile = null;
         this.hasMoved = false;
+        this.hasDoubleMoved=false;
         this.state = 'alive';
         this.stats = {
             canMove: true,
@@ -104,6 +105,7 @@ class Pawn extends Piece {
         if (targetTile.x === this.currentTile.x &&
             targetTile.y === this.currentTile.y + direction &&
             !targetTile.occupyingPiece) {
+            this.hasDoubleMoved=false;
             return true;
         }
 
@@ -113,6 +115,7 @@ class Pawn extends Piece {
             targetTile.y === this.currentTile.y + (2 * direction) &&
             !targetTile.occupyingPiece &&
             !board.getTileAt(this.currentTile.x, this.currentTile.y + direction).occupyingPiece) {
+            this.hasDoubleMoved=true;
             return true;
         }
 
@@ -129,6 +132,13 @@ class Pawn extends Piece {
             targetTile.occupyingPiece.color !== this.color) {
             return this.createCaptureResult(true, [targetTile.occupyingPiece]);
         }
+        if (isDiagonal && 
+            !targetTile.occupyingPiece && 
+            board.getTileAt(targetTile.x, (targetTile.y)-direction).occupyingPiece && 
+            board.getTileAt(targetTile.x, (targetTile.y)-direction).occupyingPiece.hasDoubleMoved){
+                return this.createCaptureResult(true, [board.getTileAt(targetTile.x, (targetTile.y)-direction).occupyingPiece]);
+        }
+
 
         return this.createCaptureResult(false);
     }
