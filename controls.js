@@ -93,9 +93,24 @@ class GameController {
             console.log(targetTile,this.dragStartTile)
             // Check for valid captures first
             const captureResult = this.selectedPiece.isValidCapture(targetTile, this.board);
+            const captureAltResult = this.selectedPiece.isValidAltCapture(targetTile, this.board);
             if (captureResult.isValid) {
                 // Mark captured pieces as dead
                 captureResult.capturedPieces.forEach(piece => {
+                    const pieceTile = piece.currentTile;
+                    if (pieceTile) pieceTile.clear();
+                    piece.state = 'dead';
+                    piece.currentTile = null;
+                    
+                });
+
+                this.selectedPiece.spawn(targetTile);
+                moveSuccessful = true;
+            }
+            //Alt capture
+            else if (captureAltResult.isValid) {
+                // Mark captured pieces as dead
+                captureAltResult.capturedPieces.forEach(piece => {
                     const pieceTile = piece.currentTile;
                     if (pieceTile) pieceTile.clear();
                     piece.state = 'dead';
@@ -110,6 +125,11 @@ class GameController {
                 this.selectedPiece.spawn(targetTile);
                 moveSuccessful = true;
             }
+            //Alt move
+            else if (this.selectedPiece.isValidAltMove(targetTile, this.board)) {
+                this.selectedPiece.spawn(targetTile);
+                moveSuccessful = true;
+            }
         }
 
         if (!moveSuccessful) {
@@ -117,6 +137,17 @@ class GameController {
             this.selectedPiece.spawn(this.dragStartTile);
         } else {
             // End turn if move was successful
+            this.selectedPiece.hasMoved=true;
+            console.log(targetY);
+            if(this.selectedPiece.name=='pawn'  && (targetY===0 || targetY===7 )){
+                board.transformPiece(this.selectedPiece, 'queen');
+            }
+            const pawns = board.getPiecesByType('pawn', 'enemy');
+            for (let i = 0; i < pawns.length; i++) {
+                pawns[i].hasDoubleMoved=false;
+            }
+
+
             this.gameState.endTurn();
         }
 

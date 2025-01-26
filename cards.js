@@ -3,11 +3,7 @@ class CardManager {
     constructor(board) {
         this.board = board;
         this.cardTypes = [
-            TelekinesisCard,
-            OnslaughtCard,
-            PolymorphCard,
-            DraughtCard,
-            BizarreMutationCard
+            TopsyTurvyCard
         ];
     }
 
@@ -279,6 +275,12 @@ class Card {
     }
 
 
+    overrideAltLogic(newAltMove, newAltCapture, pieces) {
+        for (let i = 0; i < pieces.length; i++) {
+            pieces[i].isValidAltMove = newAltMove.bind(pieces[i]); 
+            pieces[i].isValidAltCapture = newAltCapture.bind(pieces[i]); 
+        }
+    }
 }
 
 
@@ -451,5 +453,59 @@ class TelekinesisCard extends Card {
     checkRequirements() {
         const pawns = this.getPiecesByType('pawn', 'enemy');
         return pawns.some(pawn => this.hasValidCardinalMoves(pawn));
+    }
+}
+class TopsyTurvyCard extends Card {
+    constructor(board) {
+        super("TopsyTurvyCard",
+              "Pawn's capture and move abilities are reversed",
+              board);
+        this.stages = 1;
+        this.maxSelections = [1];
+        this.initializeStages();
+        
+    }
+    determineSelectables() {
+    }
+    
+    execute() {
+        const selections = this.selectedObjects.get(0);
+        selections.forEach((targetTile, piece) => {
+            this.transformPiece(piece, 'jumper');
+        });
+        const pieces = this.getPiecesByType('pawn', 'own');
+        const newAltMove = function(targetTile, board) {
+            const direction = this.color === 'white' ? -1 : 1;
+            const isDiagonal = Math.abs(targetTile.x - this.currentTile.x) === 1 &&
+                          targetTile.y === this.currentTile.y + direction;
+            const isDiagonal2 = Math.abs(targetTile.x - this.currentTile.x) === 2 &&
+                    targetTile.y === this.currentTile.y + (2*direction);
+            if (isDiagonal && !targetTile.occupyingPiece )
+                
+                return true;
+            
+            if (isDiagonal2 && !board.getTileAt((this.currentTile.x+targetTile.x)/2, this.currentTile.y + direction).occupyingPiece && !targetTile.occupyingPiece && !this.hasMoved)
+                return true;
+            
+            return false;
+        }
+        const newAltCapture = function(targetTile, board) {
+            const direction = this.color === 'white' ? -1 : 1;
+    
+            // Basic one square forward capture
+            if (targetTile.x === this.currentTile.x &&
+                targetTile.y === this.currentTile.y + direction &&
+                targetTile.occupyingPiece) {
+                    console.log('взял прямо');
+                    return this.createCaptureResult(true, [targetTile.occupyingPiece]);
+            }
+            return this.createCaptureResult(false, []);
+        }
+        this.overrideAltLogic(newAltMove, newAltCapture, pieces);
+    }
+
+    checkRequirements() {
+        const pawns = this.getPiecesByType('pawn', 'own');
+        return pawns.length > 0;
     }
 }

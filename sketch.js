@@ -153,6 +153,23 @@ class Board {
     resetTileStates() {
         this.tiles.forEach(tile => tile.resetState());
     }
+    getPiecesByType(pieceName, colorRequirement = 'any') {
+        return this.pieces.filter(piece => {
+            if (piece.state === 'dead') return false;
+            if (piece.name !== pieceName) return false;
+
+            switch(colorRequirement) {
+                case 'own':
+                    return piece.color === this.gameState.currentPlayer;
+                case 'enemy':
+                    return piece.color !== this.gameState.currentPlayer;
+                case 'any':
+                    return true;
+                default:
+                    return false;
+            }
+        });
+    }
 }
 
 // p5.js specific code

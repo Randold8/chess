@@ -4,7 +4,14 @@ class Piece {
         this.color = color;
         this.currentTile = null;
         this.hasMoved = false;
+        this.hasDoubleMoved=false;
         this.state = 'alive';
+        this.stats = {
+            canMove: true,
+            canAltMove: true,
+            canCapture: true,
+            canAltCapture: true
+        }
     }
     createCaptureResult(isValid, capturedPieces = []) {
         return {
@@ -23,7 +30,7 @@ class Piece {
         this.currentTile = tile;
         tile.occupy(this);
     }
-transform(newPieceName) {
+    transform(newPieceName) {
     // Create new piece of desired type
     const newPiece = Piece.createPiece(newPieceName, this.color);
     newPiece.board = this.board; // Transfer board reference
@@ -46,7 +53,7 @@ transform(newPieceName) {
     }
 
     return newPiece;
-}
+    }
 
     // Add helper method to check if piece is of certain types
     isOfType(...types) {
@@ -98,6 +105,7 @@ class Pawn extends Piece {
         if (targetTile.x === this.currentTile.x &&
             targetTile.y === this.currentTile.y + direction &&
             !targetTile.occupyingPiece) {
+            this.hasDoubleMoved=false;
             return true;
         }
 
@@ -107,6 +115,7 @@ class Pawn extends Piece {
             targetTile.y === this.currentTile.y + (2 * direction) &&
             !targetTile.occupyingPiece &&
             !board.getTileAt(this.currentTile.x, this.currentTile.y + direction).occupyingPiece) {
+            this.hasDoubleMoved=true;
             return true;
         }
 
@@ -123,8 +132,22 @@ class Pawn extends Piece {
             targetTile.occupyingPiece.color !== this.color) {
             return this.createCaptureResult(true, [targetTile.occupyingPiece]);
         }
+        if (isDiagonal && 
+            !targetTile.occupyingPiece && 
+            board.getTileAt(targetTile.x, (targetTile.y)-direction).occupyingPiece && 
+            board.getTileAt(targetTile.x, (targetTile.y)-direction).occupyingPiece.hasDoubleMoved){
+                return this.createCaptureResult(true, [board.getTileAt(targetTile.x, (targetTile.y)-direction).occupyingPiece]);
+        }
+
 
         return this.createCaptureResult(false);
+    }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
     }
 }
 
@@ -156,6 +179,13 @@ class Rook extends Piece {
 
         return this.createCaptureResult(false);
     }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
+    }
 }
 
 class Knight extends Piece {
@@ -186,6 +216,13 @@ class Knight extends Piece {
 
         return this.createCaptureResult(false);
     }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
+    }
 }
 
 class Bishop extends Piece {
@@ -215,6 +252,13 @@ class Bishop extends Piece {
         }
 
         return this.createCaptureResult(false);
+    }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
     }
 }
 
@@ -250,6 +294,13 @@ class Queen extends Piece {
 
         return this.createCaptureResult(false);
     }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
+    }
 }
 // pieces.js (continued)
 class King extends Piece {
@@ -280,6 +331,15 @@ class King extends Piece {
 
         return this.createCaptureResult(false);
     }
+
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
+    }
+
 }
 class Jumper extends Piece {
     constructor(color) {
@@ -324,6 +384,13 @@ class Jumper extends Piece {
 
         return this.createCaptureResult(true, [jumpedTile.occupyingPiece]);
     }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
+    }
 }
 // In pieces.js
 class Ogre extends Piece {
@@ -358,5 +425,12 @@ class Ogre extends Piece {
         }
 
         return this.createCaptureResult(false);
+    }
+    isValidAltMove(targetTile, board) {
+        return false;
+    }
+
+    isValidAltCapture(targetTile, board) {
+        return false;
     }
 }
