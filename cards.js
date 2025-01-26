@@ -449,7 +449,7 @@ class TopsyTurvyCard extends Card {
                 
                 return true;
             
-            if (isDiagonal2 &&targetTile.occupyingPiece)
+            if (isDiagonal2 && !board.getTileAt((this.currentTile.x+targetTile.x)/2, this.currentTile.y + direction).occupyingPiece && !targetTile.occupyingPiece && !this.hasMoved)
                 return true;
             
             return false;

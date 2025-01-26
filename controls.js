@@ -93,6 +93,7 @@ class GameController {
                     if (pieceTile) pieceTile.clear();
                     piece.state = 'dead';
                     piece.currentTile = null;
+                    
                 });
 
                 this.selectedPiece.spawn(targetTile);
@@ -128,6 +129,13 @@ class GameController {
             this.selectedPiece.spawn(this.dragStartTile);
         } else {
             // End turn if move was successful
+            this.selectedPiece.hasMoved=true;
+            console.log(targetY);
+            if(this.selectedPiece.name=='pawn'  && (targetY===0 || targetY===7 )){
+                board.transformPiece(this.selectedPiece, 'queen');
+            }
+
+
             this.gameState.endTurn();
         }
 

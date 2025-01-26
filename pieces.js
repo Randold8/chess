@@ -29,7 +29,7 @@ class Piece {
         this.currentTile = tile;
         tile.occupy(this);
     }
-transform(newPieceName) {
+    transform(newPieceName) {
     // Create new piece of desired type
     const newPiece = Piece.createPiece(newPieceName, this.color);
     newPiece.board = this.board; // Transfer board reference
@@ -52,7 +52,7 @@ transform(newPieceName) {
     }
 
     return newPiece;
-}
+    }
 
     // Add helper method to check if piece is of certain types
     isOfType(...types) {
