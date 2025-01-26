@@ -96,22 +96,48 @@ class DrawManager {
     drawCard(cardState) {
         if (!cardState) return;
 
-        fill(255);
+        const cornerRadius = 10;
+        const padding = 15;
+        const textYOffset = 40; // Adjust offset for text below image
+
+        fill(cardState.color);
         stroke(0);
-        rect(cardState.x, cardState.y, cardState.width, cardState.height);
+        rect(cardState.x, cardState.y, cardState.width, cardState.height, cornerRadius);
+    
+            // draw the image
+        if(cardState.image) {
+            imageMode(CENTER);
+                
+                // Calculate image size and position
+            let imageSize = Math.min(cardState.width - padding * 2, cardState.height * 0.4); // Adjust these values
+            let imageY = cardState.y + imageSize/2 + padding; // Position the image in the top
+    
+            let currentImage = cardState.image === 'polymorph.png' ? polymorphImage : cardImage;
+    
+            image(currentImage,
+                cardState.x + cardState.width/2,
+                imageY,
+                imageSize, imageSize);
+        
+            fill(0);
+            textAlign(CENTER, TOP);
+            textSize(20);
+            text(cardState.name,
+                cardState.x + cardState.width / 2,
+                imageY + imageSize/2 + padding);
+    
+             
+            textSize(16);
+            textAlign(CENTER, TOP);
+            textWrap(WORD);
 
-        fill(0);
-        textAlign(CENTER, TOP);
-        textSize(20);
-        text(cardState.name,
-             cardState.x + cardState.width/2,
-             cardState.y + 10);
-
-        textSize(16);
-        text(cardState.description,
-             cardState.x + cardState.width/2,
-             cardState.y + 40);
+            text(cardState.description,
+                cardState.x + padding,
+                imageY + imageSize/2 + padding + textYOffset,
+                cardState.width - 2 * padding);
+            }
     }
+
 
     drawCardButtons(buttonStates) {
         buttonStates.forEach(button => {

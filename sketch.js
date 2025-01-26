@@ -159,6 +159,11 @@ class Board {
 let board;
 let tileSize;
 let gameController;
+let cardImage;
+
+function preload() {
+    cardImage = loadImage("example.png")
+}
 
 function setup() {
     // Make canvas wider to accommodate graveyards

@@ -40,6 +40,16 @@ class GameState {
         const selectTarget = tile.occupyingPiece || tile;
         this.currentCard.toggleSelection(selectTarget);
     }
+    handlePieceSelection(tile) {
+        if (this.phase !== 'normal') return;
+
+        this.board.tiles.forEach(eachTile => {
+            if (tile.occupyingPiece.isValidMove(eachTile,this.board) || tile.occupyingPiece.isValidCapture(eachTile,this.board).isValid){
+                eachTile.state = 'selected';
+            }
+        });
+    } 
+
 
     executeCard() {
         if (!this.currentCard || this.phase !== 'card-selection') return;
@@ -68,20 +78,22 @@ class GameState {
 
     // Update button hit detection to match new positions
     isOverOkButton(x, y) {
-        return this.phase === 'card-selection' &&
-               x > width - 220 && x < width - 130 &&
-               y > height - 160 && y < height - 130;
+        if (!this.currentCard || this.phase !== 'card-selection' || !this.currentCard.getState().buttons) return false;
+
+        const okButton = this.currentCard.getState().buttons[0];
+        return x > okButton.x && x < okButton.x + okButton.width &&
+               y > okButton.y && y < okButton.y + okButton.height;
     }
 
     isOverDeclineButton(x, y) {
-        return this.phase === 'card-selection' &&
-               x > width - 110 && x < width - 20 &&
-               y > height - 160 && y < height - 130;
+        if (!this.currentCard || this.phase !== 'card-selection' || !this.currentCard.getState().buttons) return false;
+        const declineButton = this.currentCard.getState().buttons[1];
+        return x > declineButton.x && x < declineButton.x + declineButton.width &&
+               y > declineButton.y && y < declineButton.y + declineButton.height;
     }
-    updateTileStates() {
+    updateTileStates(reset = true) {
         // Reset all tiles first
-        this.board.resetTileStates();
-
+        if (reset) this.board.resetTileStates();
         // If there's an active card in selection phase, update tile states
         if (this.currentCard && this.phase === 'card-selection') {
             this.currentCard.determineSelectables();

@@ -57,9 +57,14 @@ class GameController {
                     x: mouseX - this.dragOffset.x,
                     y: mouseY - this.dragOffset.y
                 };
+                
+                this.gameState.handlePieceSelection(tile);
+                this.gameState.updateTileStates(false); // Add this line
 
                 // Clear the piece from its current tile while dragging
                 tile.clear();
+
+
             }
         }
     }
@@ -74,6 +79,8 @@ class GameController {
     }
 
     mouseReleased(mouseX, mouseY) {
+        this.gameState.updateTileStates(true);
+
         if (!this.isDragging || this.gameState.phase !== 'normal') return;
 
         const targetX = Math.floor(mouseX / tileSize);
@@ -82,7 +89,8 @@ class GameController {
 
         let moveSuccessful = false;
 
-        if (targetTile && this.selectedPiece) {
+        if (targetTile && this.selectedPiece && targetTile != this.dragStartTile) {
+            console.log(targetTile,this.dragStartTile)
             // Check for valid captures first
             const captureResult = this.selectedPiece.isValidCapture(targetTile, this.board);
             if (captureResult.isValid) {
@@ -117,6 +125,8 @@ class GameController {
         this.selectedPiece = null;
         this.dragStartTile = null;
         this.dragPosition = { x: 0, y: 0 };
+
+        
     }
 
     // Separate drawing UI elements from piece drawing
@@ -135,33 +145,11 @@ class GameController {
                 position: this.dragPosition
             };
         }
-
         if (this.gameState.currentCard && this.gameState.phase === 'card-selection') {
-            state.cardState = {
-                x: width - 220,
-                y: height - 120,
-                width: 200,
-                height: 100,
-                ...this.gameState.currentCard.getState()
-            };
-
-            state.buttonStates = [
-                {
-                    x: width - 220,
-                    y: height - 160,
-                    width: 90,
-                    height: 30,
-                    text: 'OK'
-                },
-                {
-                    x: width - 110,
-                    y: height - 160,
-                    width: 90,
-                    height: 30,
-                    text: 'Decline'
-                }
-            ];
+            state.cardState = this.gameState.currentCard.getState();
+            state.buttonStates = state.cardState.buttons;
         }
+
 
         return state;
     }

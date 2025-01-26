@@ -32,6 +32,17 @@ class Card {
         this.board = board;
         this.stages = 1;
         this.currentStage = 0;
+
+        // Drawing variables
+        this.x = 810 + 10; // Adjust x position to be within the gray area
+        this.y = height - 280;
+        this.width = 150;
+        this.height = 250;
+        this.angle = 0;
+        this.color = color(255);
+        this.image = 'example.png'; // Default image path
+  
+
         this.selectableTiles = new Set();        // Tiles that can be selected
         this.selectedObjects = new Map();         // Stage -> Map of selected object to target tile
         this.maxSelections = [1];                 // How many selections allowed per stage
@@ -240,9 +251,34 @@ class Card {
     getState() {
         return {
             name: this.name,
-            description: this.description
+            description: this.description,
+            x: this.x,
+            y: this.y,
+            width: this.width,
+            height: this.height,
+            angle: this.angle,
+            color: this.color,
+            image: this.image,
+            buttons: [
+                {
+                    x: this.x,
+                    y: this.y - 40,
+                    width: 70,
+                    height: 30,
+                    text: 'OK'
+                },
+                {
+                    x: this.x + 80,
+                    y: this.y - 40,
+                    width: 70,
+                    height: 30,
+                    text: 'Decline'
+                }
+            ]
         };
     }
+
+
 }
 
 
