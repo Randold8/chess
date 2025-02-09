@@ -337,7 +337,7 @@ class King extends Piece {
         for (let piece of board.pieces) {
             
             targetTile.occupyingPiece = this;
-            if (piece.color != this.color && piece.isValidCapture(targetTile, board).isValid) {
+            if (piece.state == "alive" && piece.color != this.color && piece.isValidCapture(targetTile, board).isValid) {
                 targetTile.occupyingPiece = occupyingPieceOriginal;
                 return true;  
             }
