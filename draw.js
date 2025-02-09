@@ -31,6 +31,11 @@ class DrawManager {
                     color(150, 255, 150) : // Brighter green
                     color(100, 200, 100);  // Darker green
                 break;
+            case 'threated':
+                baseColor = (tile.x + tile.y) % 2 === 0 ?
+                    color(255, 100, 100) : // Brighter red
+                    color(2500, 50, 50);  // Darker red
+                break;
             default: // 'normal'
                 baseColor = (tile.x + tile.y) % 2 === 0 ?
                     color(255) : // White

@@ -40,14 +40,28 @@ class GameState {
         const selectTarget = tile.occupyingPiece || tile;
         this.currentCard.toggleSelection(selectTarget);
     }
+    
     handlePieceSelection(tile) {
         if (this.phase !== 'normal') return;
 
         this.board.tiles.forEach(eachTile => {
+
             if (tile.occupyingPiece.isValidMove(eachTile,this.board) || tile.occupyingPiece.isValidCapture(eachTile,this.board).isValid){
-                eachTile.state = 'selected';
+
+                if (tile.occupyingPiece.name == "king" && tile.occupyingPiece.isInThreat(eachTile,this.board)){
+                    eachTile.state = 'threated';
+                }
+                else
+                {        
+                    eachTile.state = 'selected';
+                }
             }
         });
+        
+        if (tile.occupyingPiece.name == "king" && tile.occupyingPiece.isInThreat(tile,this.board)){
+            tile.state = 'threated';
+        }
+
     } 
 
 

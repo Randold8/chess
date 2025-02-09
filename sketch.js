@@ -222,7 +222,7 @@ function setup() {
     setupPiece('knight', 'white', 1, 7);
     setupPiece('bishop', 'white', 2, 7);
     setupPiece('queen', 'white', 3, 7);
-    setupPiece('king', 'white', 4, 7);
+    setupPiece('king', 'white', 4, 3);
     setupPiece('bishop', 'white', 5, 7);
     setupPiece('knight', 'white', 6, 7);
     setupPiece('rook', 'white', 7, 7);
