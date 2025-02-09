@@ -59,7 +59,7 @@ class GameController {
                 };
                 
                 this.gameState.handlePieceSelection(tile);
-                this.gameState.updateTileStates(false); // Add this line
+                this.gameState.updateTileStates(false);
 
                 // Clear the piece from its current tile while dragging
                 tile.clear();
@@ -89,12 +89,20 @@ class GameController {
 
         let moveSuccessful = false;
 
+        
         if (targetTile && this.selectedPiece && targetTile != this.dragStartTile) {
             console.log(targetTile,this.dragStartTile)
+            
+
             // Check for valid captures first
             const captureResult = this.selectedPiece.isValidCapture(targetTile, this.board);
             const captureAltResult = this.selectedPiece.isValidAltCapture(targetTile, this.board);
-            if (captureResult.isValid) {
+
+
+            if (this.selectedPiece.name == "king" && this.selectedPiece.isInThreat(targetTile, this.board)){
+                let moveSuccessful = false;
+            }
+            else if (captureResult.isValid) {
                 // Mark captured pieces as dead
                 captureResult.capturedPieces.forEach(piece => {
                     const pieceTile = piece.currentTile;
@@ -131,6 +139,7 @@ class GameController {
                 moveSuccessful = true;
             }
         }
+
 
         if (!moveSuccessful) {
             // Return piece to original position

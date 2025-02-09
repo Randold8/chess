@@ -310,7 +310,7 @@ class King extends Piece {
 
     isValidMove(targetTile, board) {
         if (targetTile.occupyingPiece) return false;
-
+        
         const dx = Math.abs(targetTile.x - this.currentTile.x);
         const dy = Math.abs(targetTile.y - this.currentTile.y);
 
@@ -331,6 +331,21 @@ class King extends Piece {
 
         return this.createCaptureResult(false);
     }
+    
+    isInThreat(targetTile, board) {
+        let occupyingPieceOriginal = targetTile.occupyingPiece
+        for (let piece of board.pieces) {
+            
+            targetTile.occupyingPiece = this;
+            if (piece.color != this.color && piece.isValidCapture(targetTile, board).isValid) {
+                targetTile.occupyingPiece = occupyingPieceOriginal;
+                return true;  
+            }
+            targetTile.occupyingPiece = occupyingPieceOriginal;
+        }
+        return false;
+    }
+    
 
     isValidAltMove(targetTile, board) {
         return false;
