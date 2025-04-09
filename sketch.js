@@ -238,6 +238,9 @@ function setup() {
 function draw() {
     background(220);
 
+    whiteGraveyard.updateDeadPieces(board);
+    blackGraveyard.updateDeadPieces(board);
+
     // Draw board
     drawManager.drawBoard(board.getState());
 
