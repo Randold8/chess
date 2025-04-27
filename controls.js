@@ -59,7 +59,7 @@ class GameController {
                 };
                 
                 this.gameState.handlePieceSelection(tile);
-                this.gameState.updateTileStates(false); // Add this line
+                this.gameState.updateTileStates(false);
 
                 // Clear the piece from its current tile while dragging
                 tile.clear();
@@ -87,50 +87,89 @@ class GameController {
         const targetY = Math.floor(mouseY / tileSize);
         const targetTile = this.board.getTileAt(targetX, targetY);
 
+        let moveAllowed = true;
         let moveSuccessful = false;
 
+        
         if (targetTile && this.selectedPiece && targetTile != this.dragStartTile) {
             console.log(targetTile,this.dragStartTile)
+            
+
             // Check for valid captures first
             const captureResult = this.selectedPiece.isValidCapture(targetTile, this.board);
             const captureAltResult = this.selectedPiece.isValidAltCapture(targetTile, this.board);
-            if (captureResult.isValid) {
-                // Mark captured pieces as dead
-                captureResult.capturedPieces.forEach(piece => {
-                    const pieceTile = piece.currentTile;
-                    if (pieceTile) pieceTile.clear();
-                    piece.state = 'dead';
-                    piece.currentTile = null;
-                    
-                });
+            const king = this.board.getPiecesByType("king","own")[0];
 
-                this.selectedPiece.spawn(targetTile);
-                moveSuccessful = true;
+            if (this.selectedPiece == king && this.selectedPiece.isInThreat(targetTile, this.board)){
+                moveAllowed = false;
             }
-            //Alt capture
-            else if (captureAltResult.isValid) {
-                // Mark captured pieces as dead
-                captureAltResult.capturedPieces.forEach(piece => {
-                    const pieceTile = piece.currentTile;
-                    if (pieceTile) pieceTile.clear();
-                    piece.state = 'dead';
-                    piece.currentTile = null;
-                });
+            
+            else if(this.selectedPiece != king && king.isInThreat(king.currentTile,this.board) ){
+                
+                let wasPiece
+                if (targetTile.occupyingPiece)
+                {
+                    wasPiece = targetTile.occupyingPiece;
+                    wasPiece.currentTile = null;
+                    wasPiece.state = "dead"
+                }
 
+                targetTile.clear();
                 this.selectedPiece.spawn(targetTile);
-                moveSuccessful = true;
+
+                if (king.isInThreat(king.currentTile,this.board)){
+                    king.currentTile.state = "threated";
+                    moveAllowed = false;
+                }
+
+                targetTile.clear()
+                if (wasPiece) {
+                    wasPiece.spawn(targetTile);
+                    wasPiece.state = "alive"
+                }
             }
-            // If no valid capture, check for valid move
-            else if (this.selectedPiece.isValidMove(targetTile, this.board)) {
-                this.selectedPiece.spawn(targetTile);
-                moveSuccessful = true;
-            }
-            //Alt move
-            else if (this.selectedPiece.isValidAltMove(targetTile, this.board)) {
-                this.selectedPiece.spawn(targetTile);
-                moveSuccessful = true;
+            
+            if (moveAllowed){
+                if (captureResult.isValid) {
+                    // Mark captured pieces as dead
+                    captureResult.capturedPieces.forEach(piece => {
+                        const pieceTile = piece.currentTile;
+                        if (pieceTile) pieceTile.clear();
+                        piece.state = 'dead';
+                        piece.currentTile = null;
+                        
+                    });
+
+                    this.selectedPiece.spawn(targetTile);
+                    moveSuccessful = true;
+                }
+                //Alt capture
+                else if (captureAltResult.isValid) {
+                    // Mark captured pieces as dead
+                    captureAltResult.capturedPieces.forEach(piece => {
+                        const pieceTile = piece.currentTile;
+                        if (pieceTile) pieceTile.clear();
+                        piece.state = 'dead';
+                        piece.currentTile = null;
+                    });
+
+                    this.selectedPiece.spawn(targetTile);
+                    moveSuccessful = true;
+                }
+                // If no valid capture, check for valid move
+                else if (this.selectedPiece.isValidMove(targetTile, this.board)) {
+                    this.selectedPiece.spawn(targetTile);
+                    moveSuccessful = true;
+                }
+                //Alt move
+                else if (this.selectedPiece.isValidAltMove(targetTile, this.board)) {
+                    this.selectedPiece.spawn(targetTile);
+                    moveSuccessful = true;
+                }
             }
         }
+
+
 
         if (!moveSuccessful) {
             // Return piece to original position
